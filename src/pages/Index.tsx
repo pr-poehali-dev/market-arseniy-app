@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import QrScanner from '@/components/QrScanner';
+import OrderQr from '@/components/OrderQr';
 
 interface Product {
   id: number;
@@ -361,6 +362,8 @@ const Payment = ({ total, count, cart, onPublish, onDone }: {
   const [comment, setComment] = useState('');
   const [share, setShare] = useState(true);
   const [paid, setPaid] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const orderId = `2026-${String(Date.now()).slice(-4)}`;
 
   const handlePay = () => {
     if (share) {
@@ -382,8 +385,22 @@ const Payment = ({ total, count, cart, onPublish, onDone }: {
         <Icon name="CircleCheck" className="text-white" size={40} />
       </div>
       <h2 className="font-display font-extrabold text-2xl mb-2">Заказ оформлен!</h2>
+      <p className="text-muted-foreground mb-2">Заказ №{orderId}</p>
       <p className="text-muted-foreground mb-6">{share ? 'Заказ появился в публичной ленте 🎉' : 'Ваш заказ принят в обработку'}</p>
-      <Button onClick={onDone} className="rounded-full gradient-brand border-0" size="lg">Перейти в ленту</Button>
+      <div className="flex gap-3 justify-center">
+        <Button onClick={() => setQrOpen(true)} variant="outline" className="rounded-full">
+          <Icon name="QrCode" size={16} className="mr-1" /> Мой QR-код
+        </Button>
+        <Button onClick={onDone} className="rounded-full gradient-brand border-0">Перейти в ленту</Button>
+      </div>
+      <OrderQr
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        orderId={orderId}
+        items={cart.map((c) => c.name)}
+        sum={total}
+        status="В обработке"
+      />
     </div>
   );
 
@@ -484,6 +501,7 @@ const Orders = ({ onPublish, onFeed }: { onPublish: (o: Omit<PublicOrder, 'id' |
   const [published, setPublished] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [qrOrder, setQrOrder] = useState<typeof orders[0] | null>(null);
 
   const orders = [
     { id: '2026-0042', date: '18 июня', status: 'Доставлен', sum: 13480, items: ['Кроссовки Arsenia Air', 'Наушники Arsenia Beat'] },
@@ -510,7 +528,12 @@ const Orders = ({ onPublish, onFeed }: { onPublish: (o: Omit<PublicOrder, 'id' |
             <Card key={o.id} className="rounded-2xl p-5 border-border animate-float-up" style={{ animationDelay: `${i * 80}ms` }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="font-display font-semibold">Заказ №{o.id}</span>
-                <Badge className={`border-0 text-white ${o.status === 'Доставлен' ? 'bg-accent' : 'bg-secondary'}`}>{o.status}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={`border-0 text-white ${o.status === 'Доставлен' ? 'bg-accent' : 'bg-secondary'}`}>{o.status}</Badge>
+                  <button onClick={() => setQrOrder(o)} className="text-muted-foreground hover:text-primary transition-colors" title="QR-код заказа">
+                    <Icon name="QrCode" size={18} />
+                  </button>
+                </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">{o.items.join(', ')}</p>
               <div className="flex items-center justify-between text-sm mb-3">
@@ -540,6 +563,17 @@ const Orders = ({ onPublish, onFeed }: { onPublish: (o: Omit<PublicOrder, 'id' |
           );
         })}
       </div>
+
+      {qrOrder && (
+        <OrderQr
+          open={!!qrOrder}
+          onClose={() => setQrOrder(null)}
+          orderId={qrOrder.id}
+          items={qrOrder.items}
+          sum={qrOrder.sum}
+          status={qrOrder.status}
+        />
+      )}
     </div>
   );
 };
